@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe ValidateGatewayService, type: :controller do
-  describe 'call' do
+  describe '#call' do
     context 'when gateway is valid' do
       let(:gateway) { 'paypal' }
       it 'returns true' do
