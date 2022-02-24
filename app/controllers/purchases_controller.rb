@@ -10,11 +10,9 @@ class PurchasesController < ApplicationController
 
     return render json: { errors: [{ message: 'Cart not found!' }] }, status: :unprocessable_entity unless cart
 
-    user = CreateUserService.call(purchase_params[:user], cart)
+    (user, user_errors) = CreateUserService.call(purchase_params[:user], cart)
 
-    unless user.valid?
-      return render json: { errors: user.errors.map(&:full_message).map { |message| { message: message } } }, status: :unprocessable_entity
-    end
+    return render json: { errors: user_errors }, status: :unprocessable_entity unless user_errors.nil?
 
     order = Order.new(
       user: user,

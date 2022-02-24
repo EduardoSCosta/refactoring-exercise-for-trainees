@@ -1,6 +1,6 @@
 class CreateUserService < ApplicationService
-  def initialize(user, cart)
-    @user = user
+  def initialize(params, cart)
+    @params = params
     @cart = cart
   end
   private_class_method :new
@@ -8,7 +8,11 @@ class CreateUserService < ApplicationService
   def call
     return @cart.user unless @cart.user.nil?
 
-    user_params = @user ? @user : {}
-    User.create(**user_params.merge(guest: true))
+    params = @params ? @params : {}
+    user = User.create(**params.merge(guest: true))
+
+    user_errors = user.errors.map(&:full_message).map { |message| { message: message } }
+
+    [user, user_errors]
   end
 end
