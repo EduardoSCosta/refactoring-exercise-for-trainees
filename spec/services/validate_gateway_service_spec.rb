@@ -6,14 +6,21 @@ RSpec.describe ValidateGatewayService do
     context 'when gateway is valid' do
       let(:gateway) { 'paypal' }
       it 'returns true' do
-        expect(call).to eq(true)
+        (valid_gateway,) = call
+        expect(valid_gateway).to eq(true)
       end
     end
 
     context 'when gateway is invalid' do
       let(:gateway) { 'not_a_gateway' }
       it 'returns false' do
-        expect(call).to eq(false)
+        (valid_gateway,) = call
+        expect(valid_gateway).to eq(false)
+      end
+
+      it 'returns false' do
+        (_, gateway_error) = call
+        expect(gateway_error).to eq([{ message: 'Gateway not supported!' }])
       end
     end
   end

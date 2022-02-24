@@ -1,8 +1,8 @@
 class PurchasesController < ApplicationController
   def create
-    unless ValidateGatewayService.call(purchase_params[:gateway])
-      return render json: { errors: [{ message: 'Gateway not supported!' }] }, status: :unprocessable_entity
-    end
+    (valid_gateway, gateway_error) = ValidateGatewayService.call(purchase_params[:gateway])
+
+    return render json: { errors: gateway_error }, status: :unprocessable_entity unless valid_gateway
 
     (cart, cart_error) = FindCartService.call(purchase_params[:cart_id])
 

@@ -7,6 +7,9 @@ class ValidateGatewayService < ApplicationService
   private_class_method :new
 
   def call
-    AVAILABLE_GATEWAYS.include?(@gateway)
+    valid_gateway = AVAILABLE_GATEWAYS.include?(@gateway)
+    gateway_error = [{ message: 'Gateway not supported!' }]
+
+    [valid_gateway, gateway_error]
   end
 end
