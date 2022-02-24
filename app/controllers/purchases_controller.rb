@@ -4,11 +4,9 @@ class PurchasesController < ApplicationController
       return render json: { errors: [{ message: 'Gateway not supported!' }] }, status: :unprocessable_entity
     end
 
-    cart_id = purchase_params[:cart_id]
+    (cart, cart_error) = FindCartService.call(purchase_params[:cart_id])
 
-    cart = Cart.find_by(id: cart_id)
-
-    return render json: { errors: [{ message: 'Cart not found!' }] }, status: :unprocessable_entity unless cart
+    return render json: { errors: cart_error }, status: :unprocessable_entity unless cart
 
     (user, user_errors) = CreateUserService.call(purchase_params[:user], cart)
 
