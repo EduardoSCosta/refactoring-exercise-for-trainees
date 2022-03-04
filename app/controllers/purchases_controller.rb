@@ -1,110 +1,22 @@
 class PurchasesController < ApplicationController
   def create
-    if purchase_params[:gateway] == 'paypal'
-      cart_id = purchase_params[:cart_id]
+    valid_gateway, gateway_error = ValidateGatewayService.call(purchase_params[:gateway])
 
-      cart = Cart.find_by(id: cart_id)
+    return error_message(gateway_error) unless valid_gateway
 
-      unless cart
-        return render json: { errors: [{ message: 'Cart not found!' }] }, status: :unprocessable_entity
-      end
+    cart, cart_error = FindCartService.call(purchase_params[:cart_id])
 
-      user = if cart.user.nil?
-               user_params = purchase_params[:user] ? purchase_params[:user] : {}
-               User.create(**user_params.merge(guest: true))
-             else
-               cart.user
-             end
+    return error_message(cart_error) unless cart
 
-      if user.valid?
-        order = Order.new(
-          user: user,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          address_1: address_params[:address_1],
-          address_2: address_params[:address_2],
-          city: address_params[:city],
-          state: address_params[:state],
-          country: address_params[:country],
-          zip: address_params[:zip],
-        )
+    user, user_errors = CreateUserService.call(purchase_params[:user], cart)
 
-        cart.items.each do |item|
-          item.quantity.times do
-            order.items << OrderLineItem.new(
-              order: order,
-              sale: item.sale,
-              unit_price_cents: item.sale.unit_price_cents,
-              shipping_costs_cents: shipping_costs,
-              paid_price_cents: item.sale.unit_price_cents + shipping_costs
-            )
-          end
-        end
+    return error_message(user_errors) unless user_errors.nil?
 
-        order.save
+    order, order_errors = CreateOrderService.call(user, address_params, cart)
 
-        if order.valid?
-          return render json: { status: :success, order: { id: order.id } }, status: :ok
-        else
-          return render json: { errors: order.errors.map(&:full_message).map { |message| { message: message } } }, status: :unprocessable_entity
-        end
-      else
-        return render json: { errors: user.errors.map(&:full_message).map { |message| { message: message } } }, status: :unprocessable_entity
-      end
-    elsif purchase_params[:gateway] == 'stripe'
-      cart_id = purchase_params[:cart_id]
+    return error_message(order_errors) unless order_errors.nil?
 
-      cart = Cart.find_by(id: cart_id)
-
-      unless cart
-        return render json: { errors: [{ message: 'Cart not found!' }] }, status: :unprocessable_entity
-      end
-
-      user = if cart.user.nil?
-               user_params = purchase_params[:user] ? purchase_params[:user] : {}
-               User.create(**user_params.merge(guest: true))
-             else
-               cart.user
-             end
-
-      if user.valid?
-        order = Order.new(
-          user: user,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          address_1: address_params[:address_1],
-          address_2: address_params[:address_2],
-          city: address_params[:city],
-          state: address_params[:state],
-          country: address_params[:country],
-          zip: address_params[:zip],
-        )
-
-        cart.items.each do |item|
-          item.quantity.times do
-            order.items << OrderLineItem.new(
-              order: order,
-              sale: item.sale,
-              unit_price_cents: item.sale.unit_price_cents,
-              shipping_costs_cents: shipping_costs,
-              paid_price_cents: item.sale.unit_price_cents + shipping_costs
-            )
-          end
-        end
-
-        order.save
-
-        if order.valid?
-          return render json: { status: :success, order: { id: order.id } }, status: :ok
-        else
-          return render json: { errors: order.errors.map(&:full_message).map { |message| { message: message } } }, status: :unprocessable_entity
-        end
-      else
-        return render json: { errors: user.errors.map(&:full_message).map { |message| { message: message } } }, status: :unprocessable_entity
-      end
-    else
-      render json: { errors: [{ message: 'Gateway not supported!' }] }, status: :unprocessable_entity
-    end
+    render json: { status: :success, order: { id: order.id } }, status: :ok
   end
 
   private
@@ -122,7 +34,7 @@ class PurchasesController < ApplicationController
     purchase_params[:address] || {}
   end
 
-  def shipping_costs
-    100
+  def error_message(error)
+    render json: { errors: error }, status: :unprocessable_entity
   end
 end
