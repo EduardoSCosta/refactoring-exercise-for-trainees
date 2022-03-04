@@ -9,9 +9,9 @@ class CreateOrderService < ApplicationService
   private_class_method :new
 
   def call
-    order = newOrder
+    order = new_order
 
-    addOrderItems(order)
+    add_order_items(order)
 
     order.save
     order_errors = order.errors.map(&:full_message).map { |message| { message: message } }
@@ -21,7 +21,7 @@ class CreateOrderService < ApplicationService
 
   private
 
-  def newOrder
+  def new_order
     Order.new(
       user: @user,
       first_name: @user.first_name,
@@ -35,7 +35,7 @@ class CreateOrderService < ApplicationService
     )
   end
 
-  def addOrderItems(order)
+  def add_order_items(order)
     @cart.items.each do |item|
       item.quantity.times do
         order.items << OrderLineItem.new(
